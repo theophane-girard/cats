@@ -4,6 +4,7 @@ import { environment } from 'app/environments/environment';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { mapLazyLoadEvent } from 'app/shared/paginate.utils';
 import { Cat, CreateCatForm, GetResponse } from 'app/cats/models/cats.type';
+import { catchError, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -23,9 +24,22 @@ export class CatService {
         url.searchParams.append(key, String(value));
       });
     }
-    return this.http.get<GetResponse<Cat>>(url.toString());
+    return this.http.get<GetResponse<Cat>>(url.toString()).pipe(
+      catchError(() =>
+        of({
+          count: 0,
+          next: '',
+          previous: '',
+          results: [],
+        }),
+      ),
+    );
   }
   public getById(id: number) {
-    return this.http.get<Cat>(`${this.apiUrl + id}/`);
+    return this.http.get<Cat>(`${this.apiUrl + id}/`).pipe(
+      catchError(() =>
+        of(undefined),
+      ),
+    );
   }
 }

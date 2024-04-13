@@ -28,6 +28,7 @@ import { CatService } from 'app/cats/data-access/cat.service';
   ],
   template: `
     <p-button label="Add cat" [routerLink]="['new']" />
+    <p-button label="Order" [routerLink]="['order']" />
     <section>
       <p-table
         [value]="cats$ | async"

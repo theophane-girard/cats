@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { map } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import {
   Comment,
@@ -17,7 +17,12 @@ export class CommentService {
   public get(catId?: number) {
     const getComments$ = this.http
       .get<GetResponse<Comment>>(this.apiUrl)
-      .pipe(map(({ results }) => results));
+      .pipe(map(({ results }) => results))
+      .pipe(
+        catchError(() =>
+          of([]),
+        ),
+      );;
     if (!catId) {
       return getComments$;
     }
