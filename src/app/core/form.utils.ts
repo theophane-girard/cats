@@ -1,6 +1,8 @@
 import {
+  DestroyRef,
   Directive,
   inject,
+  Injectable,
   input,
   OnDestroy,
   OnInit,
@@ -9,11 +11,13 @@ import {
 } from '@angular/core';
 import {
   ControlContainer,
+  FormArray,
   FormControl,
   FormGroup,
   NgForm,
 } from '@angular/forms';
 import { distinctUntilChanged, filter, map } from 'rxjs';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 
 export const provideParentControlContainer = (): Provider => ({
   provide: ControlContainer,
@@ -27,10 +31,14 @@ export abstract class ReusableFormComponent<T extends object>
   implements OnInit, OnDestroy
 {
   parentContainer = inject(ControlContainer);
-  abstract formGroup: toForm<T>;
+  abstract formGroup: ToForm<T>;
 
   get parentFormGroup() {
     return this.parentContainer.control as FormGroup;
+  }
+
+  get form() {
+    return this.formGroup as ToForm<T>;
   }
 
   controlKey = input.required<string>();
@@ -45,13 +53,22 @@ export abstract class ReusableFormComponent<T extends object>
   }
 }
 
-export type toForm<T extends object> = FormGroup<{
+export type ToFormArray<T> = T extends Date
+  ? FormArray<FormControl<T>>
+  : T extends object
+    ? FormArray<ToForm<T>>
+    : FormArray<FormControl<T>>;
+
+export type ToForm<T extends object> = T extends Array<infer U> ? ToFormArray<U> : FormGroup<{
   [K in keyof T]: T[K] extends Date
     ? FormControl<T[K]>
-    : T[K] extends object
-      ? toForm<T[K]>
+  : T[K] extends Array<infer U extends object> ?
+    FormArray<ToForm<U>>
+    :T[K] extends object
+      ? ToForm<T[K]>
       : FormControl<T[K]>;
 }>;
+
 
 @Directive({
   selector: 'form',
@@ -67,14 +84,14 @@ export class FormDirective<T extends object> {
     distinctUntilChanged(),
   );
   @Output() formChanges = this.valueChanges.pipe(map(() => this.formGroup));
-  public get formGroup(): toForm<T> {
-    return this.ngForm.form;
+  public get formGroup(): ToForm<T> {
+    return this.ngForm.form as ToForm<T>;
   }
 }
 
 @Directive()
 export abstract class MultiPageForm<T extends object = {}> {
-  abstract formGroup: toForm<T>;
+  abstract formGroup: ToForm<T>;
 }
 
 @Directive()
@@ -83,9 +100,10 @@ export abstract class PageForm<
   TKey extends keyof TParent,
 > implements OnInit
 {
-  abstract formGroup: toForm<TParent[TKey]>;
+  abstract formGroup: ToForm<TParent[TKey]>;
   abstract formKey: TKey;
   formProvider = inject(MultiPageForm<TParent>);
+  #destroyRef = inject(DestroyRef)
 
   get valueChange$() {
     return this.formGroup?.valueChanges;
@@ -95,20 +113,26 @@ export abstract class PageForm<
     return this.formProvider.formGroup;
   }
 
+  get form() {
+    return this.formGroup as ToForm<TParent[TKey]>;
+  }
+
   ngOnInit(): void {
     this.valueChange$
       .pipe(
         filter(() => this.formGroup.dirty),
+        takeUntilDestroyed(this.#destroyRef), // Todo: check value init on route change
       )
       .subscribe((value) =>
         this.parentFormGroup.patchValue({ [this.formKey]: value } as any, {
+          // Todo: as any
           emitEvent: false,
         }),
       );
     if (!this.parentFormGroup.controls[String(this.formKey)]) {
       this.parentFormGroup.addControl(
         String(this.formKey),
-        this.formGroup as any,
+        this.formGroup as any, // Todo: as any
       );
       return;
     }

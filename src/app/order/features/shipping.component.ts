@@ -9,18 +9,21 @@ import {
   ReactiveFormsModule,
   FormsModule,
 } from '@angular/forms';
-import { PageForm, toForm } from 'app/core/form.utils';
+import { PageForm } from 'app/core/form.utils';
 import { OrderForm } from '../order-shell.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AddressFormComponent } from '../ui/address-form.component';
-import { filter, tap } from 'rxjs';
+import { filter, startWith, tap } from 'rxjs';
 
 @Component({
   standalone: true,
   template: ` <h1>Shipping</h1>
     <form [formGroup]="formGroup">
-      <input type="checkbox" formControlName="isSame" />
+      <div>
+        <label for="">Is same address</label>
+        <input type="checkbox" formControlName="isSame" />
+      </div>
       <app-address-form controlKey="billingAddress" label="Billing Address" />
       <app-address-form controlKey="deliveryAddress" label="Delivery Address" />
     </form>`,
@@ -42,6 +45,7 @@ export default class ShippingComponent
     isSame: new FormControl(true),
   });
   isSameChange$ = this.form.controls.isSame.valueChanges.pipe(
+        startWith(this.form.controls.isSame.value),
     tap((val) => {
       if (val) {
         this.onSameAddressChecked();
@@ -51,17 +55,12 @@ export default class ShippingComponent
     }),
   );
 
-  get form() {
-    return this.formGroup as toForm<OrderForm['shipping']>;
-  }
-
   ngAfterViewInit(): void {
-    this.onSameAddressChecked();
-    this.isSameChange$.subscribe();
     this.form.controls.billingAddress.valueChanges.pipe(
       filter(() => !!this.form.controls.isSame.value),
       tap(val => this.form.controls.deliveryAddress.patchValue(val))
     ).subscribe()
+    this.isSameChange$.subscribe();
   }
 
   onSameAddressChecked() {

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { AddressForm } from '../order-shell.component';
-import { ReusableFormComponent, provideParentControlContainer, toForm } from 'app/core/form.utils';
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReusableFormComponent, provideParentControlContainer, ToForm } from 'app/core/form.utils';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 
@@ -45,7 +45,7 @@ import { InputTextModule } from 'primeng/inputtext';
   ],
 })
 export class AddressFormComponent extends ReusableFormComponent<AddressForm> {
-  formGroup: toForm<AddressForm> = new FormGroup({
+  formGroup: ToForm<AddressForm> = new FormGroup({
     postalCode: new FormControl(null),
     street: new FormControl(''),
   });

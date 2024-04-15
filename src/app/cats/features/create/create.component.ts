@@ -4,7 +4,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  FormsModule,
+} from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormDirective } from 'app/core/form.utils';
 import { ButtonModule } from 'primeng/button';
@@ -13,6 +15,7 @@ import { Router } from '@angular/router';
 import { CalendarModule } from 'primeng/calendar';
 import { CreateCatForm } from 'app/cats/models/cats.type';
 import { CatService } from 'app/cats/data-access/cat.service';
+import { viewChild } from '@angular/core';
 
 @Component({
   selector: 'app-create',
@@ -69,15 +72,17 @@ import { CatService } from 'app/cats/data-access/cat.service';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-class CreateComponent {
+export default class CreateComponent {
+  formDirective = viewChild.required(FormDirective);
   private readonly catService = inject(CatService);
   private readonly router = inject(Router);
-  protected readonly formValues = signal<CreateCatForm>({
+  readonly initialValue = {
     breed: undefined,
     birthday: '2024-02-11',
     name: undefined,
     description: undefined,
-  });
+  } as const;
+  protected readonly formValues = signal<CreateCatForm>(this.initialValue);
 
   protected onSubmit() {
     this.catService
@@ -86,5 +91,3 @@ class CreateComponent {
       .subscribe();
   }
 }
-
-export default CreateComponent;
